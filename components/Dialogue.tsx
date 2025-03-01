@@ -1,5 +1,5 @@
 "use client"
-import React, { useRef, useState } from 'react'
+import React, { useState } from 'react'
 import { Button } from './ui/button'
 import {  useWallet } from '@solana/wallet-adapter-react';
 import { Input } from './ui/input'
@@ -15,51 +15,47 @@ const Dialogue = () => {
     const { connected, publicKey } = useWallet()
     const [solAmount, setSolAmount] = useState("1")
     
-    const [loading, setLoading] = useState(false);
+    const loading = false;
 
-    const requestInProgressRef = useRef(false);
+    
 
     const airdrop = async () => {
-        if (!publicKey) {
-            toast.error("Wallet not connected");
-            return;
-        }
+        const rpcUrl = "https://api.devnet.solana.com"; // Solana Devnet RPC
     
-        // Check the ref to prevent multiple requests
-        if (requestInProgressRef.current) {
-            console.log("Request already in progress, ignoring");
-            return;
-        }
+        const requestBody = {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "requestAirdrop",
+            params: [
+                publicKey, 
+                1_000_000_000 // 1 SOL in lamports
+            ]
+        };
     
         try {
-            setLoading(true);
-            const response = await fetch('https://devnet.helius-rpc.com/?api-key=27f1c4d3-27d9-4e03-aa56-e6c122f456a2', {
-                method: 'POST',
+            const response = await fetch(rpcUrl, {
+                method: "POST",
                 headers: {
-                  "Content-Type": "application/json"
+                    "Content-Type": "application/json"
                 },
-                body: JSON.stringify({
-                  "jsonrpc": "2.0",
-                  "id": 1,
-                  "method": "requestAirdrop",
-                  "params": [
-                    "83astBRguLMdt2h5U1Tpdq5tjFoJ6noeGwaY3mDLVcri",
-                    1000000000
-                  ]
-                })
+                body: JSON.stringify(requestBody)
             });
-            
-            const data = await response.json();
-            console.log("Airdrop response:", data);
     
-            
+            const data = await response.json();
+
+            console.log(data);
+    
+            if (response.status === 200 && data.result) {
+                toast("✅ Airdrop successful! Check your wallet.");
+                console.log("Airdrop successful! Transaction Signature:", data.result);
+            } else if (response.status === 429) {
+                toast("⚠️ Rate limited! Try again later.");
+            } 
         } catch (error) {
+            toast.error("❌ Error requesting airdrop! Check console.");
             console.error("Error requesting airdrop:", error);
-            toast.error("Error requesting airdrop");
-        } finally{
-            setLoading(false);
         }
-    }
+    };
            
     
 
